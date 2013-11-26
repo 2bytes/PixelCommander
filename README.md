@@ -13,4 +13,4 @@ Command    	 	   | Hex Code		 			    | Notes
 Set Colour 		   | 50 43 53 43 RR GG BB 00 00     | RR = Red, GG = green, BB = blue
 Set Brightness     | 50 43 53 42 XX 00 00		    | XX = brightness byte, from 00 to FF
 Bright Level       | 50 43 42 4C YY 00 00		    | YY = code; Up = 55, Down = 44, Max = 49, Min = 4F
-
+Identify           | 50 43 49 44 00 00              | Pulses the LEDs white, twice, at full brightness.
