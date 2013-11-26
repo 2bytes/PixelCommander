@@ -8,16 +8,9 @@ Pixel Commander as a piece of Arduino code designed to allow control over a set 
 
 ## Commands (in hex)
 
-'''
-Set Colour: 		50 43 53 43 RR GG BB 00 00	(Where RR is red byte, GG is green byte and BB is blue byte)
-Set Brightness: 	50 43 53 42 XX 00 00		(Where XX is the brightness byte from 00 to FF)
-Brightness Level:	50 43 42 4C	YY 00 00		(Where YY is the Brightness Level Code)
-'''
+Command    		| Hex Code		 			 | Notes
+--------------- | -------------------------- | ------------------------------------------------------------
+Set Colour 		| 50 43 53 43 RR GG BB 00 00 | RR = Red byte, GG = green byte, BB = blue byte
+Set Brightness  | 50 43 53 42 XX 00 00		 | XX = brightness byte, from 00 to FF
+Bright Level    | 50 43 42 4C YY 00 00		 | YY = Brightness code; Up = 55, Down = 44, Max = 49, Min = 4F
 
-### Brightness Level Codes
-'''
-Brightness Up:		55
-Brightness Down:	44
-Brightness On:		49	(Max brightness)
-Brightness Off:		4F	(Zero brightness, Off)
-'''
