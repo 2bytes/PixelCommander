@@ -21,13 +21,15 @@
 
 #include <Adafruit_NeoPixel.h>
 
-#define PIN		9
-#define ZERO	0
+#define DATA_PIN	9
+#define ZERO	        0
 
 #define BRIGHT_UP	0x55
 #define BRIGHT_DN	0x44
 #define BRIGHT_I	0x49
 #define BRIGHT_O	0x4F
+
+#define PIXEL_COUNT     9
 
 #define BRIGHTNESS_MAX	255
 #define BRIGHTNESS_MIN	ZERO
@@ -46,7 +48,7 @@ uint32_t myPixelColour = 0xFFFFFF;
 
 boolean DEBUG = false;
 
-Adafruit_NeoPixel pixels = Adafruit_NeoPixel(9, PIN, NEO_GRB + NEO_KHZ800);
+Adafruit_NeoPixel pixels = Adafruit_NeoPixel(PIXEL_COUNT, DATA_PIN, NEO_GRB + NEO_KHZ800);
 
 void setup()
 {
@@ -79,11 +81,11 @@ void loop()
 				uint32_t green = ib[ic-3]; 
 				uint32_t blue = ib[ic-2];
 
-				myPixelColour = (red << 16) + (green << 8) + blue;
+				uint32_t pixelColour = (red << 16) + (green << 8) + blue;
 				
 				if(DEBUG)
 				{
-					Serial.print("PixelColourConcat: ");Serial.println(myPixelColour,DEC);
+					Serial.print("PixelColourConcat: ");Serial.println(pixelColour,DEC);
 
 					Serial.println("");
 					Serial.println("Setting Colour");
@@ -93,7 +95,7 @@ void loop()
 				}
 
 
-				setPixelColour(myPixelColour);
+				setPixelColour(pixelColour);
 				break;
 			}
 			else
@@ -204,15 +206,12 @@ void setPixelColour(uint32_t pixelColour)
 			Serial.println(i,DEC);
 		}
 
-		pixels.setBrightness(i);
+                setBrightnessImmediate(i);
 		myBrightness = i;
-
-		setPixelColourImmediate(pixelColour);
-
-		pixels.show();
 		delay(5);
 	}
 
+        setPixelColourImmediate(pixelColour);
 				
 	// Fade in
 	for(int i = 0; i <= startBright; i++)
@@ -222,10 +221,8 @@ void setPixelColour(uint32_t pixelColour)
 			Serial.println(i,DEC);
 		}
 
-		pixels.setBrightness(i);
+		setBrightnessImmediate(i);
 		myBrightness = i;
-
-		setPixelColourImmediate(pixelColour);
 
 		delay(5);
 	}
