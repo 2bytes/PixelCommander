@@ -31,7 +31,7 @@ twobytes_SerialCommander cmdr = twobytes_SerialCommander(word('P','C'));
 #define BRIGHT_I	0x49
 #define BRIGHT_O	0x4F
 
-#define PIXEL_COUNT     18
+#define PIXEL_COUNT     9
 
 #define BRIGHTNESS_MAX	255
 #define BRIGHTNESS_MIN	ZERO
@@ -71,15 +71,15 @@ void doInitCycle()
 
 	setPixelColourImmediate(0xFF0000);
 
-	delay(1000);
+	delay(500);
 
 	setPixelColourImmediate(0x00FF00);
 
-	delay(1000);
+	delay(500);
 
 	setPixelColourImmediate(0x0000FF);
 
-	delay(1000);
+	delay(00);
 
 	setPixelColourImmediate(0xFFFFFF);
 
@@ -179,15 +179,25 @@ void setBrightnessLevelCMD(char data[])
 
 void setBrightnessCMD(char data[])
 {
-   int newBright = data[2];				
-   fadeBrightness(newBright, false); 
+   char sBright[2] = {data[2], data[3]};
+   Serial.print("Bright: ");Serial.println(sBright);
+   byte bright = (byte)strtoul(sBright, NULL, 16);
+   fadeBrightness(bright, false); 
 }
 
 void setColourCMD(char data[])
 { 
-  uint8_t red = data[2];
-  uint8_t green = data[3]; 
-  uint8_t blue = data[4];
+  char sRed[2] = {data[2], data[3]};
+  Serial.print("R: ");Serial.println(sRed);
+  byte red = (byte)strtoul(sRed, NULL, 16);
+  
+  char sGreen[2] = {data[4], data[5]};
+  Serial.print("G: ");Serial.println(sGreen);
+  byte green = (byte)strtoul(sGreen, NULL, 16);
+  
+  char sBlue[2] = {data[6], data[7]};
+  Serial.print("B: ");Serial.println(sBlue);
+  byte blue = (byte)strtoul(sBlue, NULL, 16);
 
   uint32_t pixelColour = ((uint32_t)red << 16) | ((uint32_t)green << 8) | (uint32_t)blue;
 				
