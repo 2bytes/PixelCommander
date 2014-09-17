@@ -26,11 +26,6 @@ twobytes_SerialCommander cmdr = twobytes_SerialCommander(word('P','C'));
 #define DATA_PIN	9
 #define ZERO	        0
 
-#define BRIGHT_UP	0x55
-#define BRIGHT_DN	0x44
-#define BRIGHT_I	0x49
-#define BRIGHT_O	0x4F
-
 #define PIXEL_COUNT     9
 
 #define BRIGHTNESS_MAX	255
@@ -39,7 +34,8 @@ twobytes_SerialCommander cmdr = twobytes_SerialCommander(word('P','C'));
 int myBrightness = 255;
 uint32_t myPixelColour = 0xFFFFFF;
 
-boolean DEBUG = false;
+boolean DEBUG = false; // Write debug logs to Serial interface.
+boolean DO_INIT = true; // Do the flashy (but slow) startup sequence.
 
 Adafruit_NeoPixel pixels = Adafruit_NeoPixel(PIXEL_COUNT, DATA_PIN, NEO_GRB + NEO_KHZ800);
 
@@ -54,9 +50,13 @@ void setup()
         cmdr.addCommand("SC", setColourCMD);
         cmdr.addCommand("BL", setBrightnessLevelCMD);
         cmdr.addCommand("ID", identifyCMD);
+        cmdr.addCommand("HELLO", sayHelloCMD);
         cmdr.setDefaultHandler(unknownCommand);
 
-	doInitCycle();
+	if(DO_INIT)
+        {
+          doInitCycle();
+        }
 
 }
 
@@ -67,6 +67,8 @@ void loop()
 
 void doInitCycle()
 {
+        int spin[9] = {0,1,2,5,8,7,6,3,4};
+  
 	delay(100);
 
 	setPixelColourImmediate(0xFF0000);
@@ -79,7 +81,7 @@ void doInitCycle()
 
 	setPixelColourImmediate(0x0000FF);
 
-	delay(00);
+	delay(500);
 
 	setPixelColourImmediate(0xFFFFFF);
 
@@ -95,27 +97,30 @@ void doInitCycle()
         
         
         // Red
+        setSinglePixelColour(spin[8], 0xFF0000);
         for(uint16_t j = 0; j < pixels.numPixels(); j++)
         {
-           setSinglePixelColour(j, 0xFF0000);
-           delay(200);
-           setSinglePixelColour(j, 0xFFFFFF);
+           setSinglePixelColour(spin[j], 0xFF0000);
+           delay(50);
+           setSinglePixelColour(spin[j], 0xFFFFFF);
         }
         
         // Green
+        setSinglePixelColour(spin[8], 0x00FF00);
         for(uint16_t j = 0; j < pixels.numPixels(); j++)
         {
-           setSinglePixelColour(j, 0x00FF00);
-           delay(200);
-           setSinglePixelColour(j, 0xFFFFFF);
+           setSinglePixelColour(spin[j], 0x00FF00);
+           delay(50);
+           setSinglePixelColour(spin[j], 0xFFFFFF);
         }
         
         // Blue
+        setSinglePixelColour(spin[8], 0x0000FF);
         for(uint16_t j = 0; j < pixels.numPixels(); j++)
         {
-           setSinglePixelColour(j, 0x0000FF);
-           delay(200);
-           setSinglePixelColour(j, 0xFFFFFF);
+           setSinglePixelColour(spin[j], 0x0000FF);
+           delay(50);
+           setSinglePixelColour(spin[j], 0xFFFFFF);
         }
         
 	Serial.println("Ready");
@@ -131,6 +136,11 @@ Serial Commander callbacks
 -----------------------------------------------------------------------------------------
 */
 
+void sayHelloCMD(char data[])
+{
+   Serial.print("Hello, ");Serial.println(data); 
+}
+
 void identifyCMD(char data[])
 {
   if(DEBUG)
@@ -142,44 +152,55 @@ void identifyCMD(char data[])
 
 void setBrightnessLevelCMD(char data[])
 { 
-  int brightCode = data[2];
 
-  switch (brightCode)
+  Serial.print("Input: ");Serial.println(data);
+  Serial.print("Bright Level: ");Serial.println(data);
+
+  
+  if(memcmp(data, "UP", 2) == 0)
   {
-	case BRIGHT_UP:
-	  if(DEBUG)
-	  {
-	    Serial.println("BRIGHT_UP");
-	  }
-	  increaseBrightness();
-	  break;
-	case BRIGHT_DN:
-	  if(DEBUG)
-	  {
-	    Serial.println("BRIGHT_DN");
-	  }
-	  decreateBrightness();
-	  break;
-	case BRIGHT_I:
-	  if(DEBUG)
-	  {
-	    Serial.println("BRIGHT_I");
-	  }
-	  setBrightnessImmediate(BRIGHTNESS_MAX);
-	  break;
-	case BRIGHT_O:
-	  if(DEBUG)
-	  {
-            Serial.println("BRIGHT_O");
-	  }
-	  setBrightnessImmediate(BRIGHTNESS_MIN);
-	  break;
-     } 
+    if(DEBUG)
+    {
+      Serial.println("BRIGHT_UP");
+    }
+    
+    increaseBrightness();
+  }
+  else
+  if(memcmp(data, "DN", 2) == 0)
+  {
+      if(DEBUG)
+      {
+	Serial.println("BRIGHT_DN");
+      }
+      
+      decreateBrightness();
+  }
+  else
+  if(memcmp(data, "ON", 2) == 0)
+  {
+      if(DEBUG)
+      {
+        Serial.println("BRIGHT_I");
+      }
+      
+      setBrightnessImmediate(BRIGHTNESS_MAX);
+  }
+  else
+  if(memcmp(data, "OFF", 2) == 0)
+  {
+     if(DEBUG)
+     {
+       Serial.println("BRIGHT_O");
+     }
+     
+     setBrightnessImmediate(BRIGHTNESS_MIN);
+  } 
 }
 
 void setBrightnessCMD(char data[])
 {
-   char sBright[2] = {data[2], data[3]};
+   char sBright[2] = {data[0], data[1]};
    Serial.print("Bright: ");Serial.println(sBright);
    byte bright = (byte)strtoul(sBright, NULL, 16);
    fadeBrightness(bright, false); 
@@ -187,15 +208,15 @@ void setBrightnessCMD(char data[])
 
 void setColourCMD(char data[])
 { 
-  char sRed[2] = {data[2], data[3]};
+  char sRed[2] = {data[0], data[1]};
   Serial.print("R: ");Serial.println(sRed);
   byte red = (byte)strtoul(sRed, NULL, 16);
   
-  char sGreen[2] = {data[4], data[5]};
+  char sGreen[2] = {data[2], data[3]};
   Serial.print("G: ");Serial.println(sGreen);
   byte green = (byte)strtoul(sGreen, NULL, 16);
   
-  char sBlue[2] = {data[6], data[7]};
+  char sBlue[2] = {data[4], data[5]};
   Serial.print("B: ");Serial.println(sBlue);
   byte blue = (byte)strtoul(sBlue, NULL, 16);
 
