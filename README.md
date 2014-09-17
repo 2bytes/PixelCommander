@@ -1,16 +1,17 @@
-# Pixel Commander v1.0
+# Pixel Commander v2.0
 
 Pixel Commander as a piece of Arduino code designed to allow control over a set of WS2812B RGB LEDs connected over UART.
 
 ## Requirements
 
 * AdaFruit NeoPixel Library for Arduino [https://github.com/adafruit/Adafruit_NeoPixel]
+* 2bytes SerialCommander v1.0 Library for Arduino [https://github.com/2bytes/SerialCommmander/tree/v1.0]
 
-## Commands (in hex)
+## Commands (spaces only for readability)
 
-Command    	 	   | Hex Code		 			    | Notes
+Command    	 	   | Command String	 			    | Notes
 ------------------ | ------------------------------ | ------------------------------------------------------------:
-Set Colour 		   | 50 43 53 43 RR GG BB 00 00     | RR = Red, GG = green, BB = blue
-Set Brightness     | 50 43 53 42 XX 00 00		    | XX = brightness byte, from 00 to FF
-Bright Level       | 50 43 42 4C YY 00 00		    | YY = code; Up = 55, Down = 44, Max = 49, Min = 4F
-Identify           | 50 43 49 44 00 00              | Pulses the LEDs white, twice, at full brightness.
+Set Colour 		   | PCSC RR GG BB [ENTER]          | RR = Red, GG = Green, BB = Blue
+Set Brightness     | PCSB XX [ENTER]    		    | XX = brightness byte, from 00 to FF
+Bright Level       | PCBL YY(Y) [ENTER]    		    | YY = code; "UP", "DN", "ON", "OFF"
+Identify           | PCID [ENTER]                   | Pulses the LEDs white, twice, at full brightness.
