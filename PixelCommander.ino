@@ -18,35 +18,24 @@
 * along with this program.  If not, see <http://www.gnu.org/licenses/gpl.html>.
 */
 
-
+#include <SerialCommander.h>
 #include <Adafruit_NeoPixel.h>
+
+twobytes_SerialCommander cmdr = twobytes_SerialCommander(word('P','C'));
 
 #define DATA_PIN	9
 #define ZERO	        0
-
-#define BRIGHT_UP	0x55
-#define BRIGHT_DN	0x44
-#define BRIGHT_I	0x49
-#define BRIGHT_O	0x4F
 
 #define PIXEL_COUNT     9
 
 #define BRIGHTNESS_MAX	255
 #define BRIGHTNESS_MIN	ZERO
 
-// Command characters
-#define B	0x42
-#define C	0x43
-#define D	0x44
-#define I	0x49
-#define L	0x4C
-#define P	0x50
-#define S	0x53
-
 int myBrightness = 255;
 uint32_t myPixelColour = 0xFFFFFF;
 
-boolean DEBUG = false;
+boolean DEBUG = false; // Write debug logs to Serial interface.
+boolean DO_INIT = true; // Do the flashy (but slow) startup sequence.
 
 Adafruit_NeoPixel pixels = Adafruit_NeoPixel(PIXEL_COUNT, DATA_PIN, NEO_GRB + NEO_KHZ800);
 
@@ -57,142 +46,209 @@ void setup()
 
 	Serial.begin(115200);
 
-	doInitCycle();
+        cmdr.addCommand("SB", setBrightnessCMD);
+        cmdr.addCommand("SC", setColourCMD);
+        cmdr.addCommand("BL", setBrightnessLevelCMD);
+        cmdr.addCommand("ID", identifyCMD);
+        cmdr.addCommand("HELLO", sayHelloCMD);
+        cmdr.setDefaultHandler(unknownCommand);
+
+	if(DO_INIT)
+        {
+          doInitCycle();
+        }
 
 }
 
 void loop()
 {
-	// Input buffer
-	byte	ib[64];
-	// Input count
-	int		ic = 0;
-
-	while(1)
-	{
-		if(Serial.peek() != -1)
-		{
-			ib[ic] = Serial.read();
-			// Pixel Commander - Set Colour
-			// 50 43 53 43 RR GG BB 00 00
-			if(ib[ic-8] == P && ib[ic-7] == C && ib[ic-6] == S && ib[ic-5] == C && ib[ic-1] == ZERO && ib[ic] == ZERO)
-			{
-				uint32_t red = ib[ic-4];
-				uint32_t green = ib[ic-3]; 
-				uint32_t blue = ib[ic-2];
-
-				uint32_t pixelColour = (red << 16) + (green << 8) + blue;
-				
-				if(DEBUG)
-				{
-					Serial.print("PixelColourConcat: ");Serial.println(pixelColour,DEC);
-
-					Serial.println("");
-					Serial.println("Setting Colour");
-					Serial.print("Red: ");Serial.println(red,HEX);
-					Serial.print("Green: ");Serial.println(green, HEX);
-					Serial.print("Blue: ");Serial.println(blue, HEX);
-				}
-
-
-				setPixelColour(pixelColour);
-				break;
-			}
-			else
-			// Pixel Commander - Set Brightness
-			// 50 43 53 42 XX 00 00
-			if(ib[ic-6] == P && ib[ic-5] == C && ib[ic-4] == S && ib[ic-3] == B && ib[ic-1] == ZERO && ib[ic] == ZERO)
-			{
-				int newBright = ib[ic-2];
-				
-				fadeBrightness(newBright, false);
-			}
-			else
-			// Pixel Commander - Brightness Level: UP, DOWN, ON (MAX), OFF (MIN)
-			// 50 43 42 4C XX 00 00
-			if(ib[ic-6] == P && ib[ic-5] == C && ib[ic-4] == B && ib[ic-3] == L && ib[ic-1] == ZERO && ib[ic] == ZERO)
-			{
-				int brightCode = ib[ic-2];
-
-				switch (brightCode)
-				{
-				case BRIGHT_UP:
-					if(DEBUG)
-					{
-						Serial.println("BRIGHT_UP");
-					}
-					increaseBrightness();
-					break;
-				case BRIGHT_DN:
-					if(DEBUG)
-					{
-						Serial.println("BRIGHT_DN");
-					}
-					decreateBrightness();
-					break;
-				case BRIGHT_I:
-					if(DEBUG)
-					{
-						Serial.println("BRIGHT_I");
-					}
-					setBrightnessImmediate(BRIGHTNESS_MAX);
-					break;
-				case BRIGHT_O:
-					if(DEBUG)
-					{
-						Serial.println("BRIGHT_O");
-					}
-					setBrightnessImmediate(BRIGHTNESS_MIN);
-					break;
-
-				}
-			}
-			else
-			// Pixel Commander - Identify
-			// 50 43 49 44 00 00
-			if(ib[ic-5] == P && ib[ic-4] == C && ib[ic-3] == I && ib[ic-2] == D && ib[ic-1] == ZERO && ib[ic] == ZERO)
-			{
-				if(DEBUG)
-				{
-					Serial.println("IDENTIFY");
-				}
-				identify();
-			}
-
-			ic++;
-		}
-	}
-
-	delay(20);
-
+  cmdr.readSerialLooper();
 }
 
 void doInitCycle()
 {
+        int spin[9] = {0,1,2,5,8,7,6,3,4};
+  
 	delay(100);
 
 	setPixelColourImmediate(0xFF0000);
 
-	delay(100);
+	delay(500);
 
 	setPixelColourImmediate(0x00FF00);
 
-	delay(100);
+	delay(500);
 
 	setPixelColourImmediate(0x0000FF);
 
-	delay(100);
+	delay(500);
 
 	setPixelColourImmediate(0xFFFFFF);
 
-	delay(100);
+	delay(200);
 
 	fadeBrightness(ZERO, false);
 
-	delay(100);
+	delay(200);
 
+        fadeBrightness(0xFF, false);
+        
+        delay(100);
+        
+        
+        // Red
+        setSinglePixelColour(spin[8], 0xFF0000);
+        for(uint16_t j = 0; j < pixels.numPixels(); j++)
+        {
+           setSinglePixelColour(spin[j], 0xFF0000);
+           delay(50);
+           setSinglePixelColour(spin[j], 0xFFFFFF);
+        }
+        
+        // Green
+        setSinglePixelColour(spin[8], 0x00FF00);
+        for(uint16_t j = 0; j < pixels.numPixels(); j++)
+        {
+           setSinglePixelColour(spin[j], 0x00FF00);
+           delay(50);
+           setSinglePixelColour(spin[j], 0xFFFFFF);
+        }
+        
+        // Blue
+        setSinglePixelColour(spin[8], 0x0000FF);
+        for(uint16_t j = 0; j < pixels.numPixels(); j++)
+        {
+           setSinglePixelColour(spin[j], 0x0000FF);
+           delay(50);
+           setSinglePixelColour(spin[j], 0xFFFFFF);
+        }
+        
 	Serial.println("Ready");
 }
+
+/*
+-----------------------------------------------------------------------------------------
+
+Serial Commander callbacks
+
+
+
+-----------------------------------------------------------------------------------------
+*/
+
+void sayHelloCMD(char data[])
+{
+   Serial.print("Hello, ");Serial.println(data); 
+}
+
+void identifyCMD(char data[])
+{
+  if(DEBUG)
+  {
+    Serial.println("IDENTIFY");
+  }
+  identify();
+}
+
+void setBrightnessLevelCMD(char data[])
+{ 
+
+  Serial.print("Input: ");Serial.println(data);
+  Serial.print("Bright Level: ");Serial.println(data);
+
+  
+  if(memcmp(data, "UP", 2) == 0)
+  {
+    if(DEBUG)
+    {
+      Serial.println("BRIGHT_UP");
+    }
+    
+    increaseBrightness();
+  }
+  else
+  if(memcmp(data, "DN", 2) == 0)
+  {
+      if(DEBUG)
+      {
+	Serial.println("BRIGHT_DN");
+      }
+      
+      decreateBrightness();
+  }
+  else
+  if(memcmp(data, "ON", 2) == 0)
+  {
+      if(DEBUG)
+      {
+        Serial.println("BRIGHT_I");
+      }
+      
+      setBrightnessImmediate(BRIGHTNESS_MAX);
+  }
+  else
+  if(memcmp(data, "OFF", 2) == 0)
+  {
+     if(DEBUG)
+     {
+       Serial.println("BRIGHT_O");
+     }
+     
+     setBrightnessImmediate(BRIGHTNESS_MIN);
+  } 
+}
+
+void setBrightnessCMD(char data[])
+{
+   char sBright[2] = {data[0], data[1]};
+   Serial.print("Bright: ");Serial.println(sBright);
+   byte bright = (byte)strtoul(sBright, NULL, 16);
+   fadeBrightness(bright, false); 
+}
+
+void setColourCMD(char data[])
+{ 
+  char sRed[2] = {data[0], data[1]};
+  Serial.print("R: ");Serial.println(sRed);
+  byte red = (byte)strtoul(sRed, NULL, 16);
+  
+  char sGreen[2] = {data[2], data[3]};
+  Serial.print("G: ");Serial.println(sGreen);
+  byte green = (byte)strtoul(sGreen, NULL, 16);
+  
+  char sBlue[2] = {data[4], data[5]};
+  Serial.print("B: ");Serial.println(sBlue);
+  byte blue = (byte)strtoul(sBlue, NULL, 16);
+
+  uint32_t pixelColour = ((uint32_t)red << 16) | ((uint32_t)green << 8) | (uint32_t)blue;
+				
+  if(DEBUG)
+  {
+    Serial.print("PixelColourConcat: ");Serial.println(pixelColour,DEC);
+    Serial.println("");
+    Serial.println("Setting Colour");
+    Serial.print("Red: ");Serial.println(red,HEX);
+    Serial.print("Green: ");Serial.println(green, HEX);
+    Serial.print("Blue: ");Serial.println(blue, HEX);
+  }
+
+  setPixelColour(pixelColour);
+}
+
+void unknownCommand(char data[])
+{
+  Serial.print("Unknown command, no handler defined: ");Serial.println(data);
+}
+
+/*
+-----------------------------------------------------------------------------------------
+
+Pixel Commander functions
+
+
+
+-----------------------------------------------------------------------------------------
+*/
 
 void setPixelColour(uint32_t pixelColour)
 {
@@ -227,6 +283,12 @@ void setPixelColour(uint32_t pixelColour)
 		delay(5);
 	}
 
+}
+
+void setSinglePixelColour(uint16_t pixel, uint32_t pixelColour)
+{
+    pixels.setPixelColor(pixel, pixelColour);
+    pixels.show();
 }
 
 void fadeBrightness(int newBright, boolean fast)
